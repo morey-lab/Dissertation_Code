@@ -715,16 +715,18 @@ class BolTransformerBlock(nn.Module):
         # form the padded x to be used for focal keys and values
         x_ = torch.cat([torch.zeros((B, self.remainder,C),device=device), x, torch.zeros((B, self.remainder,C), device=device)], dim=1) # (B, remainder+Z+remainder, C) 
 
-        # window the sequences
+        # window the sequences - creates tensor of windowed BOLD tokens
         windowedX, _ = windowBoldSignal(x.transpose(2,1), self.windowSize, self.shiftSize) # (B, nW, C, windowSize)         
         windowedX = windowedX.transpose(2,3) # (B, nW, windowSize, C)
 
+        # window the sequences - creates tensor of windowed BOLD tokens including fringe BOLD tokens
         windowedX_, _ = windowBoldSignal(x_.transpose(2,1), self.receptiveSize, self.shiftSize) # (B, nW, C, receptiveSize)
         windowedX_ = windowedX_.transpose(2,3) # (B, nW, receptiveSize, C)
 
         
         nW = windowedX.shape[1] # number of windows
-    
+
+        # concatenates windowed BOLD token values and CLS tokens. CLS tokens are unsqueezed to achieve proper dimensions
         xcls = torch.cat([cls.unsqueeze(dim=2), windowedX], dim = 2) # (B, nW, 1+windowSize, C)
         xcls = rearrange(xcls, "b nw l c -> (b nw) l c") # (B*nW, 1+windowSize, C) 
        
